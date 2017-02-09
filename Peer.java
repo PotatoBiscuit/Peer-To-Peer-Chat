@@ -7,9 +7,9 @@ import java.lang.String;
 import java.lang.Thread;
 import java.io.IOException;
 
-//New comment
-
 public class Peer{
+	public static LinkedList<PeerInfo> peerList = new LinkedList<PeerInfo>();
+	
 	public static void main(String[] args){
 		//IP and port number received when running program
 		//java Peer IP_Address Port_Number
