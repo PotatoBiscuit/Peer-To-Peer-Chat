@@ -37,8 +37,19 @@ public class Peer{
 		}
 		public void run(){
 			System.out.println("This is the thread that sends stuff");
-			
-			
+		}
+	}
+	
+	//This thread will help Receive Thread handle join and leave requests
+	static class IntermediateThread extends Thread{
+		private InetAddress hostAddress;
+		private int portNumber;
+		IntermediateThread(InetAddress newHostAddress, int newPortNumber){
+			hostAddress = newHostAddress;
+			portNumber = newPortNumber;
+		}
+		public void run(){
+			System.out.println("This is a helper thread");
 		}
 	}
 	
