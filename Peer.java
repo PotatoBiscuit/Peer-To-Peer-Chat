@@ -6,6 +6,7 @@ import java.util.Scanner;
 import java.lang.String;
 import java.lang.Thread;
 import java.io.IOException;
+import java.util.LinkedList;
 
 public class Peer{
 	public static LinkedList<PeerInfo> peerList = new LinkedList<PeerInfo>();
