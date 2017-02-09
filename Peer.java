@@ -9,47 +9,58 @@ import java.io.IOException;
 
 public class Peer{
 	public static void main(String[] args){
-		String hostIP = args[0];
-		int portNumber = Integer.parseInt(args[1]);
+		//IP and port number received when running program
+		//java Peer IP_Address Port_Number
+		String hostIP = args[0];	//Take user IP from command line
+		int portNumber = Integer.parseInt(args[1]);//Take port number from command line
 		try{
+			//HostIP converted into address format
 			InetAddress hostAddress = InetAddress.getByName(hostIP);
-			new SendThread(hostAddress, portNumber).start();
-			new ReceiveThread(portNumber).start();
-		}catch(UnknownHostException e){
+			new SendThread(hostAddress, portNumber).start();//Start SendThread
+			new ReceiveThread(portNumber).start();	//Start ReceiveThread
+		}catch(UnknownHostException e){	//Just throw some generic error if problem
 			System.out.println("Error: Unknown Host");
 			System.exit(1);
 		}
 	}
 	
+	//This is the thread that sends the messages to all other peers
 	static class SendThread extends Thread{
 		private InetAddress hostAddress;
 		private int portNumber;
+		//Receive and store hostAddress and portNumber
 		SendThread(InetAddress newHostAddress, int newPortNumber){
 			hostAddress = newHostAddress;
 			portNumber = newPortNumber;
 		}
 		public void run(){
 			System.out.println("This is the thread that sends stuff");
+			
+			
 		}
 	}
 	
+	//This is the thread that receives messages sent
 	static class ReceiveThread extends Thread{
 		private int portNumber;
+		//Receive and store portNumber
 		ReceiveThread(int newPortNumber){
 			portNumber = newPortNumber;
 		}
 		public void run(){
 			System.out.println("This is the thread that receives stuff");
 			DatagramPacket packet;
+			//Create buffer to hold messages
 			byte[] buffer = new byte[100];
 			try{
+				//Create listening port
 				DatagramSocket dataSocket = new DatagramSocket(portNumber);
-				while(true){
+				while(true){	//Listen for messages infinitely
 					packet = new DatagramPacket(buffer, buffer.length);
 					dataSocket.receive(packet);
 				}
 				
-			}catch(IOException e){
+			}catch(IOException e){	//If error, tell user
 				System.out.println("Error:" + e);
 			}
 		}
