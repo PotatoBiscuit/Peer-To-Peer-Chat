@@ -13,7 +13,7 @@ import java.util.Scanner;
 
 public class Peer{
 	public static LinkedList<PeerInfo> peerList = new LinkedList<PeerInfo>();
-	
+
 	public static void main(String[] args){
 		//IP and port number received when running program
 		//java Peer IP_Address Port_Number
@@ -30,7 +30,7 @@ public class Peer{
 			System.exit(1);
 		}
 	}
-	
+
 	//This is the thread that sends the messages to all other peers
 	static class SendThread extends Thread{
 		private InetAddress hostAddress;
@@ -45,24 +45,29 @@ public class Peer{
 			byte[] buffer = new byte[256];
 			byte[] ender = new byte[1];
 			DatagramPacket packet;
-			String currentMessage;	
+			String currentMessage;
 			System.out.println("This is the thread that sends stuff");
 			BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));
-			currentMessage = stdIn.readLine();	//Take user input from system
-			buffer = currentMessage.getBytes();
-			ender[0] = (byte) '\n';
-			DatagramSocket dataSocket = new DatagramSocket(portNumber);
-			//THING TO CHANGE: This function is going to have to use a linkedlist of addresses
-			for(int i = 0; i < buffer.length; i++){  
-				packet = new DatagramPacket(buffer, i, 1, hostAddress, portNumber);
-				dataSocket.send(packet);
-			}
+            try{
+    			currentMessage = stdIn.readLine();	//Take user input from system
+    			buffer = currentMessage.getBytes();
+    			ender[0] = (byte) '\n';
+    			DatagramSocket dataSocket = new DatagramSocket(portNumber);
+    			//THING TO CHANGE: This function is going to have to use a linkedlist of addresses
+    			for(int i = 0; i < buffer.length; i++){
+    				packet = new DatagramPacket(buffer, i, 1, hostAddress, portNumber);
+    				dataSocket.send(packet);
+    			}
 
-			packet = new DatagramPacket(ender, 0, 1, hostAddress, portNumber);
-			dataSocket.send(packet);
+    			packet = new DatagramPacket(ender, 0, 1, hostAddress, portNumber);
+    			dataSocket.send(packet);
+            }catch(IOException e){ //If error, tell user
+                System.out.println("Error:" + e);
+            }
+
 		}
 	}
-	
+
 	//This thread will help Receive Thread handle join and leave requests
 	static class IntermediateThread extends Thread{
 		private InetAddress hostAddress;
@@ -75,7 +80,7 @@ public class Peer{
 			System.out.println("This is a helper thread");
 		}
 	}
-	
+
 	//This is the thread that receives messages sent
 	static class ReceiveThread extends Thread{
 		private int portNumber;
@@ -98,13 +103,7 @@ public class Peer{
 					newCharacter = new String(packet.getData(), 0, packet.getLength());
 					System.out.print(newCharacter);
 				}
-				
-				packet = new DatagramPacket(buffer, buffer.length);
-				dataSocket.receive(packet);
 
-				newCharacter = new String(packet.getData(), 0, packet.getLength());
-				System.out.print(newCharacter);
-				
 			}catch(IOException e){	//If error, tell user
 				System.out.println("Error:" + e);
 			}
