@@ -2,11 +2,11 @@ import java.net.DatagramSocket;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.Scanner;
 import java.lang.String;
 import java.lang.Thread;
-import java.io.IOException;
 import java.util.LinkedList;
+import java.util.Scanner;
+import java.io.IOException;
 
 public class Peer{
 	public static LinkedList<PeerInfo> peerList = new LinkedList<PeerInfo>();
@@ -21,6 +21,7 @@ public class Peer{
 			InetAddress hostAddress = InetAddress.getByName(hostIP);
 			new SendThread(hostAddress, portNumber).start();//Start SendThread
 			new ReceiveThread(portNumber).start();	//Start ReceiveThread
+			new IntermediateThread(hostAddress, portNumber).start() //Start IntermediateThread
 		}catch(UnknownHostException e){	//Just throw some generic error if problem
 			System.out.println("Error: Unknown Host");
 			System.exit(1);
@@ -31,13 +32,27 @@ public class Peer{
 	static class SendThread extends Thread{
 		private InetAddress hostAddress;
 		private int portNumber;
+		private byte[] buffer = new byte[256];
+		private byte[] ender = new byte[1];
+		private DatagramPacket packet;
+		private String currentMessage;	
 		//Receive and store hostAddress and portNumber
 		SendThread(InetAddress newHostAddress, int newPortNumber){
 			hostAddress = newHostAddress;
 			portNumber = newPortNumber;
 		}
+
 		public void run(){
 			System.out.println("This is the thread that sends stuff");
+			currentMessage = stdIn.readLine();	//Take user input from system
+				
+			buffer = currentMessage.getBytes();
+			ender[0] = (byte) '\n';
+			//THING TO CHANGE: This function is going to have to use a linkedlist of addresses
+			for(int i = 0; i < buffer.length; i++){  
+				packet = new DatagramPacket(buffer, i, 1, hostAddress, portNumber);
+				dataSocket.send(packet);
+			}
 		}
 	}
 	
