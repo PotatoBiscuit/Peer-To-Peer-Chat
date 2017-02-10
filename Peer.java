@@ -13,10 +13,15 @@ import java.util.Scanner;
 
 public class Peer{
 	public static LinkedList<PeerInfo> peerList = new LinkedList<PeerInfo>();
+    public static boolean stillConnected = true;
 
 	public static void main(String[] args){
 		//IP and port number received when running program
 		//java Peer IP_Address Port_Number
+        if(args.length != 2){
+            System.out.println("Usage: java Peer IP_Address Port_Number");
+            System.exit(1);
+        }
 		String hostIP = args[0];	//Take user IP from command line
 		int portNumber = Integer.parseInt(args[1]);//Take port number from command line
 		try{
@@ -30,6 +35,10 @@ public class Peer{
 			System.exit(1);
 		}
 	}
+
+    public static void disconnect(){
+        stillConnected = false;
+    }
 
 	//This is the thread that sends the messages to all other peers
 	static class SendThread extends Thread{
@@ -84,10 +93,12 @@ public class Peer{
 	//This is the thread that receives messages sent
 	static class ReceiveThread extends Thread{
 		private int portNumber;
+
 		//Receive and store portNumber
 		ReceiveThread(int newPortNumber){
 			portNumber = newPortNumber;
 		}
+
 		public void run(){
 			System.out.println("This is the thread that receives stuff");
 			String newCharacter;
@@ -96,10 +107,9 @@ public class Peer{
 			try{
 				//Create listening port
 				DatagramSocket dataSocket = new DatagramSocket(portNumber);
-				while(true){	//Listen for messages infinitely
+				while(stillConnected){	//Listen for messages while still connected
 					packet = new DatagramPacket(buffer, buffer.length);
 					dataSocket.receive(packet);
-
 					newCharacter = new String(packet.getData(), 0, packet.getLength());
 					System.out.print(newCharacter);
 				}
