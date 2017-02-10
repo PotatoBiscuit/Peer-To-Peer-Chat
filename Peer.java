@@ -2,11 +2,14 @@ import java.net.DatagramSocket;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.io.IOException;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.lang.String;
 import java.lang.Thread;
 import java.util.LinkedList;
 import java.util.Scanner;
-import java.io.IOException;
+
 
 public class Peer{
 	public static LinkedList<PeerInfo> peerList = new LinkedList<PeerInfo>();
@@ -19,9 +22,9 @@ public class Peer{
 		try{
 			//HostIP converted into address format
 			InetAddress hostAddress = InetAddress.getByName(hostIP);
-			new SendThread(hostAddress, portNumber).start();//Start SendThread
+			new SendThread(hostAddress, portNumber).start();  //Start SendThread
 			new ReceiveThread(portNumber).start();	//Start ReceiveThread
-			new IntermediateThread(hostAddress, portNumber).start() //Start IntermediateThread
+			new IntermediateThread(hostAddress, portNumber).start(); //Start IntermediateThread
 		}catch(UnknownHostException e){	//Just throw some generic error if problem
 			System.out.println("Error: Unknown Host");
 			System.exit(1);
@@ -32,10 +35,6 @@ public class Peer{
 	static class SendThread extends Thread{
 		private InetAddress hostAddress;
 		private int portNumber;
-		private byte[] buffer = new byte[256];
-		private byte[] ender = new byte[1];
-		private DatagramPacket packet;
-		private String currentMessage;	
 		//Receive and store hostAddress and portNumber
 		SendThread(InetAddress newHostAddress, int newPortNumber){
 			hostAddress = newHostAddress;
@@ -43,16 +42,24 @@ public class Peer{
 		}
 
 		public void run(){
+			byte[] buffer = new byte[256];
+			byte[] ender = new byte[1];
+			DatagramPacket packet;
+			String currentMessage;	
 			System.out.println("This is the thread that sends stuff");
+			BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));
 			currentMessage = stdIn.readLine();	//Take user input from system
-				
 			buffer = currentMessage.getBytes();
 			ender[0] = (byte) '\n';
+			DatagramSocket dataSocket = new DatagramSocket(portNumber);
 			//THING TO CHANGE: This function is going to have to use a linkedlist of addresses
 			for(int i = 0; i < buffer.length; i++){  
 				packet = new DatagramPacket(buffer, i, 1, hostAddress, portNumber);
 				dataSocket.send(packet);
 			}
+
+			packet = new DatagramPacket(ender, 0, 1, hostAddress, portNumber);
+			dataSocket.send(packet);
 		}
 	}
 	
@@ -78,16 +85,25 @@ public class Peer{
 		}
 		public void run(){
 			System.out.println("This is the thread that receives stuff");
+			String newCharacter;
 			DatagramPacket packet;
-			//Create buffer to hold messages
-			byte[] buffer = new byte[100];
+			byte[] buffer = new byte[256]; //Create buffer to hold messages
 			try{
 				//Create listening port
 				DatagramSocket dataSocket = new DatagramSocket(portNumber);
 				while(true){	//Listen for messages infinitely
 					packet = new DatagramPacket(buffer, buffer.length);
 					dataSocket.receive(packet);
+
+					newCharacter = new String(packet.getData(), 0, packet.getLength());
+					System.out.print(newCharacter);
 				}
+				
+				packet = new DatagramPacket(buffer, buffer.length);
+				dataSocket.receive(packet);
+
+				newCharacter = new String(packet.getData(), 0, packet.getLength());
+				System.out.print(newCharacter);
 				
 			}catch(IOException e){	//If error, tell user
 				System.out.println("Error:" + e);
