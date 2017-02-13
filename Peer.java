@@ -10,7 +10,6 @@ import java.lang.Thread;
 import java.util.LinkedList;
 import java.util.Scanner;
 
-
 public class Peer{
 	public static LinkedList<PeerInfo> peerList = new LinkedList<PeerInfo>();
     public static boolean stillConnected = true;
@@ -33,6 +32,7 @@ public class Peer{
 			InetAddress hostAddress = InetAddress.getByName(hostIP);
 			int hostPort = Integer.parseInt(args[0]);//Take port number from command line
             System.out.println("Your IP is: " + hostIP + " and your port number is: " + hostPort);
+            Runtime.getRuntime().addShutdownHook(new CloseThread(hostAddress, hostPort)); //Add CloseThread as a shutdown hook
 			new SendThread(hostAddress, hostPort).start();  //Start SendThread
 			new ReceiveThread(hostPort).start();	//Start ReceiveThread
 			new IntermediateThread(hostAddress, hostPort).start(); //Start IntermediateThread
@@ -44,6 +44,38 @@ public class Peer{
 
     public static void disconnect(){
         stillConnected = false;
+    }
+
+    //This handles sending disconnect messages to peers when closing the application
+    static class CloseThread extends Thread {
+        private DatagramPacket leavePacket;
+        DatagramSocket dataSocket;
+        private byte[] buffer;
+        String message;
+
+        public CloseThread(InetAddress senderAddress, int senderPort){
+            message = "4:" + senderPort + ":" + senderAddress;
+            try{
+				dataSocket = new DatagramSocket();
+			}catch(IOException e){
+				System.out.println("Error:" + e);
+			}
+        }
+
+        public void run(){
+            disconnect();
+            for(PeerInfo peer : peerList){
+                buffer = new byte[256];
+                buffer = message.getBytes();
+				leavePacket = new DatagramPacket(buffer, 0, buffer.length, peer.hostIP, peer.portNum);
+                try{
+    				dataSocket.send(leavePacket);
+                }catch(IOException e){
+    				System.out.println("Error:" + e);
+    			}
+                    dataSocket.close();
+			}
+        }
     }
 
 	//This is the thread that sends the messages to all other peers
@@ -157,9 +189,12 @@ public class Peer{
 					if(partsOfMessage[0].equals("1")){
 						broadcastJoin(partsOfMessage[2], partsOfMessage[1]);
 					}
-					if(partsOfMessage[0].equals("5")){
+					else if(partsOfMessage[0].equals("5")){
 						displayMessage(partsOfMessage[1], partsOfMessage[2]);
 					}
+                    else if(partsOfMessage[0].equals("4")){
+                        removePeer(partsOfMessage[2], partsOfMessage[1]);
+                    }
 				}
 
 			}catch(IOException e){	//If error, tell user
@@ -181,5 +216,14 @@ public class Peer{
 		public void displayMessage(String senderName, String senderMessage){ //Handle protocol 5 message
 			System.out.println(senderName + ":" + senderMessage);
 		}
+
+        public void removePeer(String leavingIP, String leavingPort){ //Handle protocol 4 message
+            for(PeerInfo peer : peerList){
+                if((peer.hostIP.toString()).equals(leavingIP) && peer.portNum == Integer.parseInt(leavingPort)){
+                    peerList.remove(peer);
+                    System.out.println("Peer has left the chat");
+                }
+            }
+        }
 	}
 }
