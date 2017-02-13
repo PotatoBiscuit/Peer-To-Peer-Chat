@@ -20,18 +20,19 @@ public class Peer{
 	public static void main(String[] args){
 		//IP and port number received when running program
 		//java Peer IP_Address Port_Number
-        if(args.length != 2){
-            System.out.println("Usage: java Peer IP_Address Port_Number");
+        if(args.length != 1){
+            System.out.println("Usage: java Peer Port_Number");
             System.exit(1);
         }
-		String hostIP = args[0];	//Take user IP from command line
-		
+
 		System.out.print("What is your name? ");
 		name = userInput.nextLine();
-		
+
 		try{
+            String hostIP = InetAddress.getLocalHost().getHostAddress(); //Aquire User IP
 			InetAddress hostAddress = InetAddress.getByName(hostIP);
-			int hostPort = Integer.parseInt(args[1]);//Take port number from command line
+			int hostPort = Integer.parseInt(args[0]);//Take port number from command line
+            System.out.println("Your IP is: " + hostIP + " and your port number is: " + hostPort);
 			new SendThread(hostAddress, hostPort).start();  //Start SendThread
 			new ReceiveThread(hostPort).start();	//Start ReceiveThread
 			new IntermediateThread(hostAddress, hostPort).start(); //Start IntermediateThread
@@ -55,7 +56,7 @@ public class Peer{
 		DatagramSocket dataSocket;
 		private DatagramPacket packet;
 		private byte[] buffer;
-		
+
 		public SendThread(InetAddress newSenderAddress, int newSenderPort){
 			senderAddress = newSenderAddress;
 			senderPort = newSenderPort;
@@ -69,14 +70,14 @@ public class Peer{
 		public void run(){
 			try{
 				joinNetwork();
-				while(true){
+				while(stillConnected){
 					sendMessage(stdIn.readLine());
 				}
 			}catch(IOException e){
 				System.out.println("Error:" + e);
 			}
 		}
-		
+
 		public void joinNetwork() throws IOException{ //Send protocol 1 message
 			String decision;
 			do{
@@ -87,9 +88,9 @@ public class Peer{
 				receiverAddress = InetAddress.getByName(userInput.nextLine());
 				System.out.print("Port number to send to: ");
 				receiverPort = userInput.nextInt();
-				
+
 				peerList.add(new PeerInfo(receiverAddress, receiverPort));
-				
+
 				String message = "1:" + senderPort + ":" + senderAddress.toString();
 				buffer = new byte[256];
 				buffer = message.getBytes();
@@ -97,7 +98,7 @@ public class Peer{
 				dataSocket.send(packet);
 			}
 		}
-		
+
 		public void sendMessage(String message) throws IOException{	//Send protocol 5 message
 			message = "5:" + name + ":" + message;
 			buffer = new byte[256];
@@ -165,7 +166,7 @@ public class Peer{
 				System.out.println("Error:" + e);
 			}
 		}
-		
+
 		public void broadcastJoin(String hostIP, String portNum) throws IOException{ //Handle protocol 1 message
 			String message = "2:" + portNum + ":" + hostIP;
 			buffer = new byte[256];
@@ -176,7 +177,7 @@ public class Peer{
 			}
 			peerList.add(new PeerInfo(InetAddress.getByName(hostIP), Integer.parseInt(portNum)));
 		}
-		
+
 		public void displayMessage(String senderName, String senderMessage){ //Handle protocol 5 message
 			System.out.println(senderName + ":" + senderMessage);
 		}
