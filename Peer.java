@@ -61,11 +61,10 @@ public class Peer{
 				System.out.println("Error:" + e);
 			}
         }
-
-        public void run(){
-            disconnect();
+        //THIS ISN'T RUNNING OR IS ONLY RUNNING THE FIRST LINE & I'M NOT SURE WHY
+        public void run(){ //Send Protocol 4 message before closing
+            buffer = new byte[256];
             for(PeerInfo peer : peerList){
-                buffer = new byte[256];
                 buffer = message.getBytes();
 				leavePacket = new DatagramPacket(buffer, 0, buffer.length, peer.hostIP, peer.portNum);
                 try{
@@ -190,6 +189,7 @@ public class Peer{
 						broadcastJoin(partsOfMessage[2], partsOfMessage[1]);
 					}
 					else if(partsOfMessage[0].equals("5")){
+                        if(partsOfMessage.length == 3)
 						displayMessage(partsOfMessage[1], partsOfMessage[2]);
 					}
                     else if(partsOfMessage[0].equals("4")){
@@ -221,7 +221,6 @@ public class Peer{
             for(PeerInfo peer : peerList){
                 if((peer.hostIP.toString()).equals(leavingIP) && peer.portNum == Integer.parseInt(leavingPort)){
                     peerList.remove(peer);
-                    System.out.println("Peer has left the chat");
                 }
             }
         }
