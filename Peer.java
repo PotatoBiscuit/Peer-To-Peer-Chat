@@ -61,19 +61,20 @@ public class Peer{
 				System.out.println("Error:" + e);
 			}
         }
-        //THIS ISN'T RUNNING OR IS ONLY RUNNING THE FIRST LINE & I'M NOT SURE WHY
+
         public void run(){ //Send Protocol 4 message before closing
             buffer = new byte[256];
-            for(PeerInfo peer : peerList){
-                buffer = message.getBytes();
-				leavePacket = new DatagramPacket(buffer, 0, buffer.length, peer.hostIP, peer.portNum);
+			buffer = message.getBytes();
+
+            for(PeerInfo peer : peerList){ //Loops through each peer in the current list to send them a leave request (protocol 4)
+				leavePacket = new DatagramPacket(buffer, 0, buffer.length, peer.hostIP, peer.portNum); //creates addressed packet to the peer
                 try{
     				dataSocket.send(leavePacket);
                 }catch(IOException e){
     				System.out.println("Error:" + e);
     			}
-                    dataSocket.close();
 			}
+			dataSocket.close();
         }
     }
 
@@ -219,7 +220,11 @@ public class Peer{
 
         public void removePeer(String leavingIP, String leavingPort){ //Handle protocol 4 message
             for(PeerInfo peer : peerList){
-                if((peer.hostIP.toString()).equals(leavingIP) && peer.portNum == Integer.parseInt(leavingPort)){
+				boolean isPeerIpLeaverIP = peer.hostIP.toString().equals("/" + leavingIP);
+				boolean isPeerPortLeaverPort = peer.portNum == Integer.parseInt(leavingPort);
+				
+                if(isPeerIpLeaverIP && isPeerPortLeaverPort){ //If the peer's port and IP match the leavers, remove that peer from the list
+					System.out.println("1");
                     peerList.remove(peer);
                 }
             }
