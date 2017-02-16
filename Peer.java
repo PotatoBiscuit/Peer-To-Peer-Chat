@@ -35,7 +35,6 @@ public class Peer{
             Runtime.getRuntime().addShutdownHook(new CloseThread(hostAddress, hostPort)); //Add CloseThread as a shutdown hook
 			new SendThread(hostAddress, hostPort).start();  //Start SendThread
 			new ReceiveThread(hostPort).start();	//Start ReceiveThread
-			new IntermediateThread(hostAddress, hostPort).start(); //Start IntermediateThread
 		}catch(UnknownHostException e){	//Just throw some generic error if problem
 			System.out.println("Error: Unknown Host");
 			System.exit(1);
@@ -132,6 +131,7 @@ public class Peer{
 		}
 
 		public void sendMessage(String message) throws IOException{	//Send protocol 5 message
+			if(message == null) return;
 			message = "5:" + name + ":" + message;
 			buffer = new byte[256];
 			buffer = message.getBytes();
@@ -139,19 +139,6 @@ public class Peer{
 				packet = new DatagramPacket(buffer, 0, buffer.length, peer.hostIP, peer.portNum);
 				dataSocket.send(packet);
 			}
-		}
-	}
-
-	//This thread will help Receive Thread handle join and leave requests
-	static class IntermediateThread extends Thread{
-		private InetAddress hostAddress;
-		private int portNumber;
-		IntermediateThread(InetAddress newHostAddress, int newPortNumber){
-			hostAddress = newHostAddress;
-			portNumber = newPortNumber;
-		}
-		public void run(){
-			;
 		}
 	}
 
@@ -215,7 +202,7 @@ public class Peer{
 		}
 
 		public void displayMessage(String senderName, String senderMessage){ //Handle protocol 5 message
-			System.out.println(senderName + ":" + senderMessage);
+			System.out.println(senderName + ": " + senderMessage);
 		}
 
         public void removePeer(String leavingIP, String leavingPort){ //Handle protocol 4 message
@@ -224,7 +211,7 @@ public class Peer{
 				boolean isPeerPortLeaverPort = peer.portNum == Integer.parseInt(leavingPort);
 				
                 if(isPeerIpLeaverIP && isPeerPortLeaverPort){ //If the peer's port and IP match the leavers, remove that peer from the list
-					System.out.println("1");
+					System.out.println("System: A peer has left the chat");
                     peerList.remove(peer);
                 }
             }
