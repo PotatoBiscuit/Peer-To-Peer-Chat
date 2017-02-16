@@ -75,6 +75,7 @@ public class Peer{
             buffer = new byte[256];
 			buffer = message.getBytes();
 
+			lockMutex();
             for(PeerInfo peer : peerList){ //Loops through each peer in the current list to send them a leave request (protocol 4)
 				leavePacket = new DatagramPacket(buffer, 0, buffer.length, peer.hostIP, peer.portNum); //creates addressed packet to the peer
                 try{
@@ -83,6 +84,7 @@ public class Peer{
     				System.out.println("Error:" + e);
     			}
 			}
+			unlockMutex();
 			dataSocket.close();
         }
     }
