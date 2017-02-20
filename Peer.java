@@ -1,3 +1,9 @@
+//Code created by Michael Ortega, Erik Dixon, and Rex
+
+/*The following import statements make it so that we
+can use classes for things like reading from the command
+line, sending information to and from sockets, and storing
+IP addresses as well as other information*/
 import java.net.DatagramSocket;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
@@ -10,7 +16,10 @@ import java.lang.Thread;
 import java.util.LinkedList;
 import java.util.Scanner;
 
-public class Peer{
+public class Peer{	//Our main peer class
+	/*The following fields are as follows: List of Peer information in the network,
+	boolean value for whether or not we're connected, object variable to prompt user for input,
+	name of the Peer, and a mutex variable*/
 	public static LinkedList<PeerInfo> peerList = new LinkedList<PeerInfo>();
     public static boolean stillConnected = true;
 	public static Scanner userInput = new Scanner(System.in);
@@ -18,13 +27,13 @@ public class Peer{
 	public static boolean mutex = false;
 
 	public static void main(String[] args){
-		//IP and port number received when running program
-		//java Peer IP_Address Port_Number
+		//Port number received when running program
+		//java Peer Port_Number
         if(args.length != 1){
             System.out.println("Usage: java Peer Port_Number");
             System.exit(1);
         }
-
+		//Receive name from user
 		System.out.print("What is your name? ");
 		name = userInput.nextLine();
 
@@ -42,30 +51,34 @@ public class Peer{
 		}
 	}
 	
-	public static void lockMutex(){
+	public static void lockMutex(){	//Function to lock our mutex
 		while(mutex);
 		mutex = true;
 	}
 	
-	public static void unlockMutex(){
+	public static void unlockMutex(){ //Function to unlock our mutex
 		mutex = false;
 	}
 
+	//Function to change boolean variable showing if we are connected
     public static void disconnect(){
         stillConnected = false;
     }
 
     //This handles sending disconnect messages to peers when closing the application
     static class CloseThread extends Thread {
+		/*Variables to hold packet data, our sending socket,
+		message buffer, and message variable*/
         private DatagramPacket leavePacket;
         DatagramSocket dataSocket;
         private byte[] buffer;
         String message;
 
+		//Create leave request (Protocol 4) to be sent to Peers
         public CloseThread(InetAddress senderAddress, int senderPort){
             message = "4:" + senderPort + ":" + senderAddress;
             try{
-				dataSocket = new DatagramSocket();
+				dataSocket = new DatagramSocket(); //Create sending socket
 			}catch(IOException e){
 				System.out.println("Error:" + e);
 			}
@@ -73,24 +86,28 @@ public class Peer{
 
         public void run(){ //Send Protocol 4 message before closing
             buffer = new byte[256];
-			buffer = message.getBytes();
+			buffer = message.getBytes();	//Store
 
-			lockMutex();
+			lockMutex();	//Lock mutex to protect our peerList variable
             for(PeerInfo peer : peerList){ //Loops through each peer in the current list to send them a leave request (protocol 4)
 				leavePacket = new DatagramPacket(buffer, 0, buffer.length, peer.hostIP, peer.portNum); //creates addressed packet to the peer
                 try{
-    				dataSocket.send(leavePacket);
+    				dataSocket.send(leavePacket); //Send message
                 }catch(IOException e){
     				System.out.println("Error:" + e);
     			}
 			}
-			unlockMutex();
-			dataSocket.close();
+			unlockMutex(); //Unlock our mutex
+			dataSocket.close(); //Close our sending socket
         }
     }
 
 	//This is the thread that sends the messages to all other peers
 	static class SendThread extends Thread{
+		/*These fields hold the IP address of the host to initially join,
+		port number of the host to intially join, IP address of the current
+		Peer, port number of the current peer, variable to get user input,
+		packet information, and the current Peer's message buffer*/
 		private InetAddress receiverAddress;
 		private int receiverPort;
 		private InetAddress senderAddress;
@@ -100,11 +117,12 @@ public class Peer{
 		private DatagramPacket packet;
 		private byte[] buffer;
 
+		//Store current Peer's IP address and port number
 		public SendThread(InetAddress newSenderAddress, int newSenderPort){
 			senderAddress = newSenderAddress;
 			senderPort = newSenderPort;
 			try{
-				dataSocket = new DatagramSocket();
+				dataSocket = new DatagramSocket();	//Create sending socket
 			}catch(IOException e){
 				System.out.println("Error:" + e);
 			}
@@ -112,9 +130,9 @@ public class Peer{
 
 		public void run(){
 			try{
-				joinNetwork();
+				joinNetwork();	//Ask Peer to join a network
 				while(stillConnected){
-					sendMessage(stdIn.readLine());
+					sendMessage(stdIn.readLine()); //Send user input to peers in network
 				}
 			}catch(IOException e){
 				System.out.println("Error:" + e);
@@ -123,6 +141,7 @@ public class Peer{
 
 		public void joinNetwork() throws IOException{ //Send protocol 1 message
 			String decision;
+			/*Ask Peer to connect to another Peer in a network*/
 			do{
 				System.out.print("Would you like to connect to a peer? (Y/N) ");
 			}while(!(decision = userInput.nextLine()).equals("Y") && !decision.equals("N"));
@@ -135,7 +154,7 @@ public class Peer{
 				lockMutex();
 				peerList.add(new PeerInfo(receiverAddress, receiverPort));
 				unlockMutex();
-
+				//Send a protocol 1 message to the specified Peer's IP address and port number
 				String message = "1:" + senderPort + ":" + senderAddress.toString();
 				buffer = new byte[256];
 				buffer = message.getBytes();
@@ -145,8 +164,8 @@ public class Peer{
 		}
 
 		public void sendMessage(String message) throws IOException{	//Send protocol 5 message
-			if(message == null) return;
-			message = "5:" + name + ":" + message;
+			if(message == null) return;	//If no message, return
+			message = "5:" + name + ":" + message;	//Send chat message to all Peers in network
 			buffer = new byte[256];
 			buffer = message.getBytes();
 			lockMutex();
@@ -160,6 +179,10 @@ public class Peer{
 
 	//This is the thread that receives messages sent
 	static class ReceiveThread extends Thread{
+		/*These variables hold the port number of the current Peer,
+		the IP address of the current Peer, the socket to receive
+		incoming messages, the socket to send messages in response,
+		packet information, and a message buffer*/
 		private int receiverPortNumber;
 		private String receiverHostIP;
 		private DatagramSocket receiveSocket;
@@ -167,13 +190,13 @@ public class Peer{
 		private DatagramPacket packet;
 		private byte[] buffer; //Create buffer to hold messages
 
-		//Receive and store portNumber
+		//Receive and store current Peer's port number and IP address
 		ReceiveThread(String newHostIP, int newPortNumber){
 			receiverPortNumber = newPortNumber;
 			receiverHostIP = newHostIP;
 			try{
-				receiveSocket = new DatagramSocket(receiverPortNumber);
-				responseSocket = new DatagramSocket();
+				receiveSocket = new DatagramSocket(receiverPortNumber);	//Create receive socket
+				responseSocket = new DatagramSocket();	//Create response socket
 			}catch(IOException e){
 				System.out.println("Error:" + e);
 			}
@@ -187,10 +210,12 @@ public class Peer{
 				while(stillConnected){	//Listen for messages while still connected
 					buffer = new byte[256];
 					packet = new DatagramPacket(buffer, buffer.length);
-					receiveSocket.receive(packet);
+					receiveSocket.receive(packet);	//Receive packet
+					//Get message from packet
 					newCharacter = new String(packet.getData(), 0, packet.getLength());
 					newCharacter = newCharacter.replace("/", "");
 					partsOfMessage = newCharacter.split(":");
+					//Based on message type, perform different actions
 					if(partsOfMessage[0].equals("1")){
 						broadcastJoin(partsOfMessage[2], partsOfMessage[1]);
 					}else if(partsOfMessage[0].equals("2")){
@@ -200,8 +225,7 @@ public class Peer{
 					}else if(partsOfMessage[0].equals("5")){
                         if(partsOfMessage.length == 3)
 						displayMessage(partsOfMessage[1], partsOfMessage[2]);
-					}
-                    else if(partsOfMessage[0].equals("4")){
+					}else if(partsOfMessage[0].equals("4")){
                         removePeer(partsOfMessage[2], partsOfMessage[1]);
                     }
 				}
@@ -210,6 +234,9 @@ public class Peer{
 			}
 		}
 
+		/*If a protocol 1 message is received, send a Peer's IP address and port number
+		to all other Peers in the network, and then add the Peer's information to the current
+		Peer's own list of peers (peerList)*/
 		public void broadcastJoin(String hostIP, String portNum) throws IOException{ //Handle protocol 1 message
 			String message = "2:" + portNum + ":" + hostIP;
 			buffer = new byte[256];
@@ -225,6 +252,9 @@ public class Peer{
 			unlockMutex();
 		}
 		
+		/*If a protocol 2 message is received, respond to the given Peer IP and portNum with
+		current Peer's own IP address and port number. Add the given IP and port number to the
+		current Peer's list of peers*/
 		public void responseJoin(String hostIP, String portNum) throws IOException{ //Protocol 2
 			String message = "3:" + receiverPortNumber + ":" + receiverHostIP;
 			buffer = new byte[256];
@@ -236,16 +266,21 @@ public class Peer{
 			unlockMutex();
 		}
 		
+		/*If a protocol 3 message is received, simply add the given information to the
+		current Peer's list of peers*/
 		public void normalJoin(String hostIP, String portNum) throws IOException{	//Protocol 3
 			lockMutex();
 			peerList.add(new PeerInfo(InetAddress.getByName(hostIP), Integer.parseInt(portNum)));
 			unlockMutex();
 		}
 
+		/*If a protocol 5 message is received, just display the chat message on-screen, with the given name*/
 		public void displayMessage(String senderName, String senderMessage){ //Handle protocol 5 message
 			System.out.println(senderName + ": " + senderMessage);
 		}
 
+		/*If a protocol 4 message is received, remove the given Peer's information from the
+		current Peer's peer list*/
         public void removePeer(String leavingIP, String leavingPort){ //Handle protocol 4 message
 			lockMutex();
             for(PeerInfo peer : peerList){
